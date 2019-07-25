@@ -98,25 +98,23 @@ def convertNote(note):
 
         last_minutes = minutes
 
+        print('Speed: {0:.2f}mm/min - Distance: {1:.2f}mm - Duration: {2:.2f}s'.format(velocity, distance, minutes * 60))
+
         # Try to go towards max Y. If it doesn't fit, go towards min Y. If neither fit, go back and forth as much as required.
         while distance > 0:
             if current_y + distance <= MAX_Y:
-                print("Forward", current_y, distance)
                 current_y += distance
                 new_ys.append(current_y)
                 distance = 0
             elif current_y - distance >= MIN_Y:
-                print("Backward", current_y, distance)
                 current_y -= distance
                 new_ys.append(current_y)
                 distance = 0
             elif current_y + distance - MAX_Y < distance - current_y + MIN_Y:
-                print("Hit Forward", current_y, distance)
                 new_ys.append(MAX_Y)
                 distance -= MAX_Y - current_y
                 current_y = MAX_Y
             else:
-                print("Hit Backward", current_y, distance)
                 new_ys.append(MIN_Y)
                 distance -= current_y - MIN_Y
                 current_y = MIN_Y
