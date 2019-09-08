@@ -1,0 +1,20 @@
+good
+
+maybe
+1
+
+meh
+9
+
+bad
+3
+2
+
+No response
+5
+7
+
+Untested
+6
+0
+4

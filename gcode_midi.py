@@ -1,6 +1,7 @@
 import mido
 
 # MIDI takes a number from 0 to 127 to represent the notes for the following frequencies
+# If 128 is entered, count as rest (SHOULD BE DEPRECATED)
 notes = [8.18, 8.66, 9.18, 9.72, 10.30, 10.91, 11.56, 12.25, 12.98, 13.75, 14.57, 15.43, 16.35,
         17.32, 18.35, 19.45, 20.60, 21.83, 23.12, 24.50, 25.96, 27.50, 29.14, 30.87, 32.70,
         34.65, 36.71, 38.89, 41.20, 43.65, 46.25, 49.00, 51.91, 55.00, 58.27, 61.74, 65.41,
@@ -13,10 +14,10 @@ notes = [8.18, 8.66, 9.18, 9.72, 10.30, 10.91, 11.56, 12.25, 12.98, 13.75, 14.57
         2637.02, 2793.83, 2959.96, 3135.96, 3322.44, 3520.00, 3729.31, 3951.07, 4186.01,
         4434.92, 4698.64, 4978.03, 5274.04, 5587.65, 5919.91, 6271.93, 6644.88, 7040.00,
         7458.62, 7902.13, 8372.02, 8869.84, 9397.27, 9956.06, 10548.08, 11175.30, 11839.82,
-        12543.85, 13289.75]
+        12543.85, 13289.75, 0]
 
 # Declare constants
-TIME_MOD = 200000 # This will need to be adjusted better later
+TIME_MOD = 100000 # This will need to be adjusted better later
 VELOCITY_MULT_Y = 10 # Adjusting this should essentially 'tune' the 3D printer
 MIN_Y = 0
 MAX_Y = 160
@@ -33,7 +34,14 @@ def main():
     # TODO: Get this to work with command line arguments.
     path = input("Enter path to MIDI file: ")
     output = input("Enter path for GCode file (it should end with .gcode): ")
-    
+
+    try:
+        mid = mido.MidiFile(path)
+        for i in range(len(mid.tracks)):
+            print(i, mid.tracks[i])
+    except FileNotFoundError:
+        print("Error: File not found")
+
     channel = None
     while channel == None:
         try:
@@ -43,6 +51,7 @@ def main():
                 channel = 0
             else:
                 channel = int(response)
+                print("Channel is", channel)
                 # Go to except block if channel is negative
                 if channel < 0:
                     raise ValueError
@@ -53,17 +62,19 @@ def main():
             # Reset channel to None so the loop continues
             channel = None
 
-    try:
-        from_file(path, output)
-    except FileNotFoundError:
-        print("Error: File not found")
+    track = mid.tracks[channel]
 
-def from_file(infile, outfile, channel=0):
+    from_track(track, output)
+
+def from_track(track, outfile):
     '''Convert a MIDI file into a GCODE file'''
-    mid = mido.MidiFile(infile)
-    for note in mid.tracks[channel]:
+
+    global TIME_MOD
+    for note in track:
         # Everything other than 'note_on' type will just be unnecesary information
-        if note.type == 'note_on':
+        if note.type == 'set_tempo':
+            TIME_MOD = int(638298 / note.tempo * 100000)
+        if note.type == 'note_on' or note.type == 'note_off':
             convertNote(note)
 
     write_gcode(outfile)
@@ -86,7 +97,7 @@ def convertNote(note):
 
     # In the MIDI files I was testing out, if note velocity is 0, then that's the part that stops the note.
     # The time component for them shows how long after the note started was.
-    if note.velocity == 0:
+    if note.velocity == 0 or note.type == 'note_off':
 
         # List contains all Y positions the printer should go to.
         new_ys = []
@@ -98,7 +109,7 @@ def convertNote(note):
 
         last_minutes = minutes
 
-        print('Speed: {0:.2f}mm/min - Distance: {1:.2f}mm - Duration: {2:.2f}s'.format(velocity, distance, minutes * 60))
+        #print('Speed: {0:.2f}mm/min - Distance: {1:.2f}mm - Duration: {2:.2f}s'.format(velocity, distance, minutes * 60))
 
         # Try to go towards max Y. If it doesn't fit, go towards min Y. If neither fit, go back and forth as much as required.
         while distance > 0:
