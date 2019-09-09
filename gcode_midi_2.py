@@ -3,9 +3,9 @@ import os
 import math
 from song import Note
 
-FILENAME = "D:\\Users\\legoh\\Music\\midi\\Don't_Stop_Me_Now.mid"
+FILENAME = "D:\\Users\\legoh\\Music\\midi\\Sea_Shanty2.mid"
 OUTPUT_FOLDER = "D:\\Users\\legoh\\Documents\\3D\\3D Printing\\"
-OUTPUT_NAME = 'DontStopMeNow2'
+OUTPUT_NAME = 'SeaShanty2-'
 
 # MIDI takes a number from 0 to 127 to represent the notes for the following frequencies
 NOTES = [8.18, 8.66, 9.18, 9.72, 10.30, 10.91, 11.56, 12.25, 12.98, 13.75, 14.57, 15.43, 16.35,
@@ -23,14 +23,12 @@ NOTES = [8.18, 8.66, 9.18, 9.72, 10.30, 10.91, 11.56, 12.25, 12.98, 13.75, 14.57
         12543.85, 13289.75]
 
 # The speed offset of the printer. Adjusting this will 'tune' the printer
-VELOCITY_MULT = (10, 10, .1)
-MIN = (0, 0, 0)
-MAX = (160, 160, 160)
-START = [(MIN[i] + MAX[i])//2 for i in range(len(MIN))]
-START_INSTRUCTIONS = "G26\nG21\nG90\nG1 X" + str(START[0]) + \
-    " Y" + str(START[1]) + " Z" + str(START[2]) + " F6000\nG4 P1000\n"
-END_INSTRUCTIONS = "\nG4 P1000\nG1 X" + str(START[0]) + \
-    " Y" + str(START[1]) + " Z" + str(START[2]) + " F6000\n"
+VELOCITY_MULT = 10
+MIN = 0
+MAX = 160
+START = (MIN + MAX)//2
+START_INSTRUCTIONS = "G26\nG21\nG90\nG1 X" + str(START) + " F6000\nG4 P1000\n"
+END_INSTRUCTIONS = "\nG4 P1000\nG1 X" + str(START) + " F6000\n"
 
 def main():
 
@@ -71,131 +69,45 @@ def notes_from_file(filename):
 def convert_notes(notes):
 
     gcode = ''
-    #pos = START[1]
+    pos = START
+    new_positions = []
 
-    pos = START.copy()
-
-    axis_range = range(len(notes))
-    indexes = [0 for i in axis_range]
-    available_notes = []
-    current_notes = []
-    unused_notes = []
-    velocities = []
-    distance = []
+    i = 0
     current_time = 0
 
-    while any([indexes[i] < len(notes[i]) for i in axis_range]):
-        # Only use notes from tracks with remaining notes        
-        for i in axis_range:
-            if indexes[i] < len(notes[i]):
-                available_notes.append(notes[i][indexes[i]])
+    for note in notes:
 
-        # Find all notes with the lowest start time
-        current_notes.append(available_notes[0])
-        if len(available_notes) > 1:
-            for note in available_notes[1:]:
-                if note.time < current_notes[0].time:
-                    current_notes.clear()
-                    current_notes.append(note)
-                elif note.time == current_notes[0].time:
-                    current_notes.append(note)
-
-        # Increment indexes for all notes being used and populate unused notes list
-        for i in axis_range:
-            if notes[i][indexes[i]] in current_notes:
-                indexes[i] += 1
-            else:
-                unused_notes.append(notes[i][indexes[i]])
-        
-        # Find start and end times
-        start = current_notes[0].time
-        end = min([note.time + note.length for note in current_notes] + [note.time for note in unused_notes])
-        duration = end - start
-
-        # Do any delays
-        delay = start - current_time
-        if delay != 0:
-            gcode += "G4 P{}\n".format(delay)
-
-        # Calculate motion in each dimension
-        for note in current_notes:
-            velocities.append(NOTES[note.note] * VELOCITY_MULT[0]) # TODO: This needs to know which axis use
-            # TODO: Potentially have every list the same size, but have None in all unused parts
-            # TODO: Or just have a list of indexes for used notes and unused notes
-            distance.append(int(velocities[-1] * duration / 60000)) # Notes are in ms
-
-        # Calculate overall velocity
-        velocity = int(math.sqrt(sum([vel**2 for vel in velocities])))
-
-        for i in range(len(current_notes)):
-            if pos[i] + distance[i] <= MAX[0]:
-                pos[i] += distance[i]
-            else:
-                pos[i] -= distance[i]
-
-        # Modify Gcode
-        gcode += "G1 X{} Y{} Z{} F{}\n".format(pos[1], pos[0], pos[2], velocity)
-
-        # Clean up
-        current_time = end
-        available_notes.clear()
-        current_notes.clear()
-        unused_notes.clear()
-        velocities.clear()
-        distance.clear()
-            
-
-    '''for note in notes:
-
-        velocity = NOTES[note.note] * VELOCITY_MULT[axis]
-        distance = velocity * note[2] / 60 # notes are in seconds
+        # Calculate distance and velocity
+        velocity = NOTES[note.note] * VELOCITY_MULT
+        distance = velocity * note.length / 60000 # notes are in miliseconds
 
         # Try to go towards max Y. If it doesn't fit, go towards min Y. If neither fit, go back and forth as much as required.
         while distance > 0:
-            if pos + distance <= MAX[1]:
+            if pos + distance <= MAX:
                 pos += distance
                 new_positions.append(pos)
                 distance = 0
-            elif pos - distance >= MIN[1]:
+            elif pos - distance >= MIN:
                 pos -= distance
                 new_positions.append(pos)
                 distance = 0
-            elif pos + distance - MAX[1] < distance - pos + MIN[1]:
-                new_positions.append(MAX[1])
-                distance -= MAX[1] - pos
-                pos = MAX[1]
+            elif pos + distance - MAX < distance - pos + MIN:
+                new_positions.append(MAX)
+                distance -= MAX - pos
+                pos = MAX
             else:
-                new_positions.append(MIN[1])
-                distance -= pos - MIN[1]
-                pos = MIN[1]
+                new_positions.append(MIN)
+                distance -= pos - MIN
+                pos = MIN
 
-        gcode += "G4 P" + str(int(note[1] * 1000)) + '\n'
+        # Write GCode to string
+        gcode += "G4 P{}\n".format(current_time - note.time)
         for new_pos in new_positions:
             gcode += "G1 Y" + str(int(new_pos)) + " F" + str(int(velocity)) + "\n"
+
+        # Prepare for next note
         new_positions.clear()
-        
-        # BREAK
-
-        pos = [i for i in START]
-        new_positions = [[] for i in START]
-
-        while distance > 0:
-            if pos[axis] + distance <= MAX[axis]:
-                pos[axis] += distance
-                new_positions[axis].append(pos[axis])
-                distance = 0
-            elif pos[axis] - distance >= MIN[axis]:
-                pos[axis] -= distance
-                new_positions[axis].append(pos[axis])
-                distance = 0
-            elif pos[axis] + distance - MAX[axis] < distance - pos[axis] + MIN[axis]:
-                new_positions[axis].append(MAX[axis])
-                distance -= MAX[axis] - pos[axis]
-                pos[axis] = MAX[axis]
-            else:
-                new_positions[axis].append(MIN[axis])
-                distance -= pos[axis] - MIN[axis]
-                pos[axis] = MIN[axis]'''
+        current_time = note.time + note.length
 
     return gcode
             
