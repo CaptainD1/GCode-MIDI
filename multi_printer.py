@@ -1,9 +1,7 @@
 import serial
 import time
-import threading
-
-printer1 = serial.Serial('/dev/ttyACM0', 250000)
-printer2 = serial.Serial('/dev/ttyACM1', 250000)
+from gcode_midi_2 import notes_from_file 
+from printer import Printer
 '''
 def send_song(printer, gcode):
     time.sleep(5)
@@ -60,29 +58,35 @@ def execute_gcode(gcode1, gcode2):
 
         print(i1, i2, '    ', end='\r')
 
-PART1 = 'DarkWorldTheme-0.gcode'
-PART2 = 'DarkWorldTheme-2.gcode'
+def send_command(gcode, printer_index):
 
-with open(PART1) as file1, open(PART2) as file2:
-    gcode1 = file1.readlines()
-    gcode2 = file2.readlines()
+    pass
 
-#track1 = threading.Thread(target=send_song, args=(printer1,gcode1))
-#track2 = threading.Thread(target=send_song, args=(printer2,gcode2))
+FILENAME = '../Dark_World_Theme.mid'
 
-#track1.start()
-#track2.start()
+printer1 = Printer('/dev/ttyACM0')
+printer2 = Printer('/dev/ttyACM1')
 
-time.sleep(5)
+tracks = notes_from_file(FILENAME)
 
-response1 = printer1.read(printer1.inWaiting()).decode()
-response2 = printer2.read(printer2.inWaiting()).decode()
+track1 = tracks[0]
+track2 = tracks[2]
 
-print(response1)
-print(response2)
+print(printer1.init())
+print(printer2.init())
+
+startup_commands = ['G26', 'G21', 'G90', 'G28']
+
+for command in startup_commands:
+    while not (printer1.ready() and printer2.ready()):
+        time.sleep(0.001)
+
+    printer1.send(command)
+    printer2.send(command)
 
 print("Starting program...")
-execute_gcode(gcode1[:6], gcode2[:6])
+
+'''execute_gcode(gcode1[:6], gcode2[:6])
 time.sleep(3)
 
 if printer1.inWaiting():
@@ -92,6 +96,6 @@ if printer2.inWaiting():
 
 time.sleep(1)
 execute_gcode(gcode1[3:], gcode2[3:])
-'''
+
 while True:
     printer2.write((input('>>> ') + '\n').encode())'''
