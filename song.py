@@ -7,7 +7,7 @@ class Note:
         self.length = length
 
     def __str__(self):
-        return "note: {}, time: {}, length: {}".format(self.note, self.time, self.length)
+        return "<note: {}, time: {}, length: {}>".format(self.note, self.time, self.length)
 
     def __repr__(self):
         return str(self)
