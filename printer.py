@@ -29,15 +29,8 @@ class Printer:
         return self._ser.readline().decode()
 
     def send(self, command):
-
-        if not self._ready:
-            while self._ser.inWaiting():
-                line = self.readline()
-                if line[:2] == b'ok':
-                    self._ready = True
-                    break
         
-        if self._ready:
+        if self.ready():
             self._ser.write((command + '\n' if command[-1] != '\n' else '').encode())
             self._ready = False
             return True
@@ -45,4 +38,12 @@ class Printer:
 
     def ready(self):
 
+        if not self._ready:
+            while self._ser.inWaiting():
+                message = self._ser.read(self._ser.inWaiting())
+                if message[:2] == b'ok' or b'\nok' in message:
+                    self._ready = True
+                    break
+
+        print(self._ready)
         return self._ready

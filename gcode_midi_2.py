@@ -3,8 +3,8 @@ import os
 import math
 from song import Note
 
-FILENAME = "D:\\Users\\legoh\\Music\\midi\\Dark_World_Theme.mid"
-OUTPUT_FOLDER = "D:\\Users\\legoh\\Documents\\3D\\3D Printing\\"
+FILENAME = "/home/pi/Dark_World_Theme.mid"
+OUTPUT_FOLDER = "~/3D Printing/"
 OUTPUT_NAME = 'DarkWorldTheme-'
 
 # MIDI takes a number from 0 to 127 to represent the notes for the following frequencies
@@ -121,4 +121,4 @@ def export_gcode(filename, gcode):
     with open(filename, 'w') as file:
         file.write(START_INSTRUCTIONS + gcode + END_INSTRUCTIONS)
 
-main()
+#main()

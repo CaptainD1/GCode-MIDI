@@ -66,22 +66,35 @@ printers = [Printer(port) for port in serial_ports]
 
 all_tracks = notes_from_file(FILENAME)
 
-tracks = [tracks[0], tracks[2]]
+tracks = [all_tracks[0], all_tracks[2]]
 
 for printer in printers:
     printer.init()
 
-startup_commands = ['G26', 'G21', 'G90', 'G28']
+startup_commands = ['G21', 'G90', 'G28']
 
 for command in startup_commands:
-    ready = all([printer.ready() for printer in printers])
-    while not ready:
+    print(command)
+    while not all([printer.ready() for printer in printers]):
         time.sleep(0.001)
 
     for printer in printers:
         printer.send(command)
 
+    print('Sent')
+
 print("Starting program...")
+
+note_index = [0 for i in range(len(printers))]
+
+start_time = time.time()
+
+while any([note_index[i] < len(tracks[i]) for i in range(len(tracks))]):
+    current_time = time.time()
+    for i in range(len(tracks)):
+        if tracks[i][note_index[i]].time + start_time >= current_time:
+            print('note')
+            #printers[i].send()
 
 '''execute_gcode(gcode1[:6], gcode2[:6])
 time.sleep(3)
