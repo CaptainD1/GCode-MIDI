@@ -42,8 +42,8 @@ class Printer:
             while self._ser.inWaiting():
                 message = self._ser.read(self._ser.inWaiting())
                 if message[:2] == b'ok' or b'\nok' in message:
+                    #print('Ready')
                     self._ready = True
                     break
 
-        print(self._ready)
         return self._ready
