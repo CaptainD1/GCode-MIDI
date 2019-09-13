@@ -58,31 +58,28 @@ def execute_gcode(gcode1, gcode2):
 
         print(i1, i2, '    ', end='\r')
 
-def send_command(gcode, printer_index):
-
-    pass
-
 FILENAME = '../Dark_World_Theme.mid'
 
-printer1 = Printer('/dev/ttyACM0')
-printer2 = Printer('/dev/ttyACM1')
+serial_ports = ['/dev/ttyACM' + str(i) for i in range(2)]
 
-tracks = notes_from_file(FILENAME)
+printers = [Printer(port) for port in serial_ports]
 
-track1 = tracks[0]
-track2 = tracks[2]
+all_tracks = notes_from_file(FILENAME)
 
-print(printer1.init())
-print(printer2.init())
+tracks = [tracks[0], tracks[2]]
+
+for printer in printers:
+    printer.init()
 
 startup_commands = ['G26', 'G21', 'G90', 'G28']
 
 for command in startup_commands:
-    while not (printer1.ready() and printer2.ready()):
+    ready = all([printer.ready() for printer in printers])
+    while not ready:
         time.sleep(0.001)
 
-    printer1.send(command)
-    printer2.send(command)
+    for printer in printers:
+        printer.send(command)
 
 print("Starting program...")
 

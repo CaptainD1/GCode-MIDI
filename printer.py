@@ -31,11 +31,11 @@ class Printer:
     def send(self, command):
 
         if not self._ready:
-        while self._ser.inWaiting():
-            line = self.readline()
-            if line[:2] == b'ok':
-                self._ready = True:
-                break
+            while self._ser.inWaiting():
+                line = self.readline()
+                if line[:2] == b'ok':
+                    self._ready = True
+                    break
         
         if self._ready:
             self._ser.write((command + '\n' if command[-1] != '\n' else '').encode())
