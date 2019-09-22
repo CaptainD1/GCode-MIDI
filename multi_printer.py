@@ -1,14 +1,33 @@
 import serial
 import time
+import os
 from note_converter import *
 from printer import Printer
 
-FILENAME = '../midi/Dark_World_Theme.mid'
+directory = '../midi/'
 
-serial_ports = ['/dev/ttyACM' + str(i) for i in range(2)]
-printers = [Printer(port) for port in serial_ports]
+files = os.listdir(directory)
+
+print("Available songs:")
+for i in range(len(files)):
+    print(' ', i, files[i])
+file_index = int(input("Enter index of file: "))
+
+FILENAME = os.path.join(directory, files[file_index])
+
 all_tracks = notes_from_file(FILENAME)
-tracks = [all_tracks[0], all_tracks[6]]
+
+print('\nAvailable tracks:')
+for channel in all_tracks:
+    print(' ', channel, len(all_tracks[channel]))
+
+track_nums = input("Enter tracks to use separated by spaces: ").split()
+track_nums = [int(num) for num in track_nums]
+
+tracks = [all_tracks[i] for i in track_nums]
+
+serial_ports = ['/dev/ttyACM' + str(i) for i in range(len(tracks))]
+printers = [Printer(port) for port in serial_ports]
 
 for printer in printers:
     printer.init()
@@ -42,6 +61,6 @@ while any([note_index[i] < len(tracks[i]) for i in track_range]):
         if note_index[i] < len(tracks[i]) and tracks[i][note_index[i]].time / 1000 + start_time <= current_time:
             gcode, pos = convert_note(tracks[i][note_index[i]], positions[i])
             positions[i] = pos
-            print(repr(gcode), tracks[i][note_index[i]].time / 1000, tracks[i][note_index[i]].length / 1000)
+            print(i, repr(gcode), tracks[i][note_index[i]].time / 1000, tracks[i][note_index[i]].length / 1000)
             printers[i].send(gcode.strip())
             note_index[i] += 1
