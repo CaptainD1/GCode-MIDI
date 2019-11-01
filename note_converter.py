@@ -15,7 +15,7 @@ NOTES = [8.18, 8.66, 9.18, 9.72, 10.30, 10.91, 11.56, 12.25, 12.98, 13.75, 14.57
         7458.62, 7902.13, 8372.02, 8869.84, 9397.27, 9956.06, 10548.08, 11175.30, 11839.82,
         12543.85, 13289.75]
 
-VELOCITY_MULT = 5
+VELOCITY_MULT = 20
 AXIS = 'Y'
 MIN = 0
 MAX = 150
@@ -62,4 +62,4 @@ def convert_note(note, pos = START):
         new_pos = pos - distance
 
     # Write GCode to string
-    return "G1 {}{} F{}\n".format(AXIS, int(new_pos), int(velocity)), new_pos
+    return "G1 {0}{1:.1f} F{2}\n".format(AXIS, new_pos, int(velocity)), new_pos
